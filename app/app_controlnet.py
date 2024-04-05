@@ -250,6 +250,7 @@ def generate(
     c_vis = PILImage.fromarray(c_vis) if c_vis is not None else samples
     c_paths = [save_image(c_vis)]
     print(image_paths)
+    print(c_paths)
     return image_paths, c_paths, seed
 
 
@@ -307,171 +308,6 @@ if torch.cuda.is_available():
     model.to(weight_dtype)
     base_ratios = eval(f'ASPECT_RATIO_{args.image_size}_TEST')
 
-with gr.Blocks(css="app/style_controlnet.css") as demo:
-    gr.Markdown(DESCRIPTION)
-    gr.DuplicateButton(
-        value="Duplicate Space for private use",
-        elem_id="duplicate-button",
-        visible=os.getenv("SHOW_DUPLICATE_BUTTON") == "1",
-    )
-    image_input = gr.Image(
-        label="Image",
-        height=360,
-        width=360,
-        show_label=False,
-        sources="upload",
-        type="pil",
-    )
-    with gr.Group():
-        with gr.Row():
-            prompt = gr.Text(
-                label="Prompt",
-                show_label=False,
-                max_lines=1,
-                placeholder="Enter your prompt",
-                container=False,
-            )
-            run_button = gr.Button("Run", scale=0)
-    with gr.Group():
-        with gr.Row():
-            hed_result = gr.Gallery(label="Hed Result", show_label=False)
-            result = gr.Gallery(label="Result", show_label=False)
-    with gr.Accordion("Advanced options", open=False):
-        with gr.Row():
-            use_negative_prompt = gr.Checkbox(label="Use negative prompt", value=False, visible=True)
-        schedule = gr.Radio(
-            show_label=True,
-            container=True,
-            interactive=True,
-            choices=SCHEDULE_NAME,
-            value=DEFAULT_SCHEDULE_NAME,
-            label="Sampler Schedule",
-            visible=True,
-        )
-        style_selection = gr.Radio(
-            show_label=True,
-            container=True,
-            interactive=True,
-            choices=STYLE_NAMES,
-            value=DEFAULT_STYLE_NAME,
-            label="Image Style",
-        )
-        negative_prompt = gr.Text(
-            label="Negative prompt",
-            max_lines=1,
-            placeholder="Enter a negative prompt",
-            visible=True,
-        )
-        seed = gr.Slider(
-            label="Seed",
-            minimum=0,
-            maximum=MAX_SEED,
-            step=1,
-            value=0,
-        )
-        randomize_seed = gr.Checkbox(label="Randomize seed", value=True)
-        with gr.Row(visible=True):
-            width = gr.Slider(
-                label="Width",
-                minimum=256,
-                maximum=MAX_IMAGE_SIZE,
-                step=32,
-                value=config.image_size,
-            )
-            height = gr.Slider(
-                label="Height",
-                minimum=256,
-                maximum=MAX_IMAGE_SIZE,
-                step=32,
-                value=config.image_size,
-            )
-        with gr.Row():
-            dpms_guidance_scale = gr.Slider(
-                label="DPM-Solver Guidance scale",
-                minimum=1,
-                maximum=10,
-                step=0.1,
-                value=4.5,
-            )
-            dpms_inference_steps = gr.Slider(
-                label="DPM-Solver inference steps",
-                minimum=5,
-                maximum=40,
-                step=1,
-                value=14,
-            )
-        with gr.Row():
-            sas_guidance_scale = gr.Slider(
-                label="SA-Solver Guidance scale",
-                minimum=1,
-                maximum=10,
-                step=0.1,
-                value=3,
-            )
-            sas_inference_steps = gr.Slider(
-                label="SA-Solver inference steps",
-                minimum=10,
-                maximum=40,
-                step=1,
-                value=25,
-            )
-
-    gr.Examples(
-        examples=[
-            [
-                "anime superman in action",
-                "asset/images/controlnet/0_0.png",
-            ],
-            [
-                "illustration of A loving couple standing in the open kitchen of the living room, cooking ,Couples have a full body, with characters accounting for a quarter of the screen, and the composition of the living room has a large perspective, resulting in a larger space.",
-                "asset/images/controlnet/0_3.png",
-            ],
-            [
-                "A Electric 4 seats mini VAN,simple design stylel,led headlight,front 45 angle view,sunlight,clear sky.",
-                "asset/images/controlnet/0_2.png",
-            ],
-        ],
-        inputs=[prompt, image_input],
-        outputs=[result, hed_result, seed],
-        fn=generate,
-        cache_examples=CACHE_EXAMPLES,
-
-    )
-
-    use_negative_prompt.change(
-        fn=lambda x: gr.update(visible=x),
-        inputs=use_negative_prompt,
-        outputs=negative_prompt,
-        api_name=False,
-    )
-
-    gr.on(
-        triggers=[
-            prompt.submit,
-            negative_prompt.submit,
-            run_button.click,
-        ],
-        fn=generate,
-        inputs=[
-            prompt,
-            image_input,
-            negative_prompt,
-            style_selection,
-            use_negative_prompt,
-            seed,
-            width,
-            height,
-            schedule,
-            dpms_guidance_scale,
-            sas_guidance_scale,
-            dpms_inference_steps,
-            sas_inference_steps,
-            randomize_seed,
-        ],
-        outputs=[result, hed_result, seed],
-        api_name="run",
-    )
-
 if __name__ == "__main__":
     generate(
         prompt="Leather sofa in a rich caramel colour, coffee table with a natural wood top and intricate cut-out white metal base, large flat-screen television mounted on a dark green circular feature wall, wooden media console with a dark brown finish, ceiling fan with a light wood finish and frosted glass light",
@@ -485,7 +321,7 @@ if __name__ == "__main__":
         schedule="DPM-Solver",
         dpms_guidance_scale=4.5,
         sas_guidance_scale=3,
-        dpms_inference_steps=14,
+        dpms_inference_steps=30,
         sas_inference_steps=25,
         randomize_seed=True,
     )
