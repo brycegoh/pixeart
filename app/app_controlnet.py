@@ -318,7 +318,7 @@ if __name__ == "__main__":
         seed=0,
         width=1024,
         height=1024,
-        schedule="DPM-Solver",
+        schedule="SA-Solver",
         dpms_guidance_scale=7.0,
         sas_guidance_scale=3,
         dpms_inference_steps=30,
