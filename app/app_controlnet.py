@@ -165,7 +165,7 @@ def generate(
     seed = int(randomize_seed_fn(seed, randomize_seed))
     torch.manual_seed(seed)
     torch.cuda.empty_cache()
-    strength = 1.0
+    strength = 0.5
     c_vis = given_image
 
     if not use_negative_prompt:
