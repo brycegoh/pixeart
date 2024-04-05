@@ -84,7 +84,7 @@ class T5Embedder:
 
         print(tokenizer_path)
         self.tokenizer = AutoTokenizer.from_pretrained("PixArt-alpha/PixArt-alpha", subfolder="t5-v1_1-xxl")
-        self.model = T5EncoderModel.from_pretrained(path, **t5_model_kwargs).eval()
+        self.model = T5EncoderModel.from_pretrained("PixArt-alpha/PixArt-alpha", subfolder="t5-v1_1-xxl", **t5_model_kwargs).eval()
         self.model_max_length = model_max_length
 
     def get_text_embeddings(self, texts):
