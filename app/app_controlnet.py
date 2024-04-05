@@ -15,13 +15,15 @@ current_file_path = Path(__file__).resolve()
 sys.path.insert(0, str(current_file_path.parent.parent))
 
 import gradio as gr
+from diffusion.model.utils import prepare_prompt_ar, resize_and_crop_tensor
+
 import numpy as np
 import torch
 from PIL import Image as PILImage
 import torchvision.transforms as T
 import torchvision.transforms.functional as TF
 from torchvision.utils import _log_api_usage_once, make_grid, save_image
-
+from diffusion.model.t5 import T5Embedder
 from diffusers import PixArtAlphaPipeline
 from diffusion import DPMS, SASolverSampler
 from diffusion.data.datasets import *
@@ -175,6 +177,15 @@ def generate(
     prompt_embeds, prompt_attention_mask, negative_prompt_embeds, negative_prompt_attention_mask\
         = pipe.encode_prompt(prompt=prompt, negative_prompt=negative_prompt)
     prompt_embeds, negative_prompt_embeds = prompt_embeds[:, None], negative_prompt_embeds[:, None]
+
+    prompt_clean, prompt_show, hw, ar, custom_hw = prepare_prompt_ar(prompt, base_ratios, device=device)  # ar for aspect ratio
+    prompt_clean = prompt_clean.strip()
+    if isinstance(prompt_clean, str):
+        prompts = [prompt_clean]
+
+    caption_embs, emb_masks = llm_embed_model.get_text_embeddings(prompts)
+    caption_embs = caption_embs[:, None]
+
     torch.cuda.empty_cache()
 
     # condition process
@@ -211,11 +222,11 @@ def generate(
     # Sample images:
     if schedule == 'DPM-Solver':
         # Create sampling noise:
-        n = prompt_embeds.shape[0]
+        n = len(prompts)
         z = torch.randn(n, 4, latent_size_h, latent_size_w, device=device)
         model_kwargs = dict(data_info={'img_hw': hw, 'aspect_ratio': ar}, mask=prompt_attention_mask, c=c)
         dpm_solver = DPMS(model.forward_with_dpmsolver,
-                          condition=prompt_embeds,
+                          condition=caption_embs,
                           uncondition=negative_prompt_embeds,
                           cfg_scale=dpms_guidance_scale,
                           model_kwargs=model_kwargs)
@@ -228,7 +239,7 @@ def generate(
         ).to(weight_dtype)
     elif schedule == "SA-Solver":
         # Create sampling noise:
-        n = prompt_embeds.shape[0]
+        n = len(prompts)
         model_kwargs = dict(data_info={'img_hw': hw, 'aspect_ratio': ar}, mask=prompt_attention_mask, c=c)
         sas_solver = SASolverSampler(model.forward_with_dpmsolver, device=device)
         samples = sas_solver.sample(
@@ -236,7 +247,7 @@ def generate(
             batch_size=n,
             shape=(4, latent_size_h, latent_size_w),
             eta=1,
-            conditioning=prompt_embeds,
+            conditioning=caption_embs,
             unconditional_conditioning=negative_prompt_embeds,
             unconditional_guidance_scale=sas_guidance_scale,
             model_kwargs=model_kwargs,
@@ -285,7 +296,7 @@ if torch.cuda.is_available():
     vae = pipe.vae
     text_encoder = pipe.text_encoder
     tokenizer = pipe.tokenizer
-
+    llm_embed_model = T5Embedder(device=device, local_cache=True, cache_dir='data/t5_ckpts', torch_dtype=torch.float)
     assert args.image_size == config.image_size
     if config.image_size == 512:
         model = PixArt_XL_2(input_size=latent_size, lewei_scale=lewei_scale[config.image_size])
