@@ -30,6 +30,7 @@ from diffusion.model.nets import PixArt_XL_2, PixArtMS_XL_2, ControlPixArtHalf, 
 from diffusion.model.utils import resize_and_crop_tensor
 from diffusion.utils.misc import read_config
 from tools.download import find_model
+from PIL import Image
 
 
 DESCRIPTION = """![Logo](https://raw.githubusercontent.com/PixArt-alpha/PixArt-alpha.github.io/master/static/images/logo.png)
@@ -47,7 +48,7 @@ MAX_SEED = np.iinfo(np.int32).max
 CACHE_EXAMPLES = torch.cuda.is_available() and os.getenv("CACHE_EXAMPLES", "1") == "1"
 MAX_IMAGE_SIZE = int(os.getenv("MAX_IMAGE_SIZE", "2048"))
 USE_TORCH_COMPILE = os.getenv("USE_TORCH_COMPILE", "0") == "1"
-ENABLE_CPU_OFFLOAD = os.getenv("ENABLE_CPU_OFFLOAD", "0") == "1"
+ENABLE_CPU_OFFLOAD = os.getenv("ENABLE_CPU_OFFLOAD", "1") == "1"
 PORT = int(os.getenv("DEMO_PORT", "15432"))
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -472,4 +473,19 @@ with gr.Blocks(css="app/style_controlnet.css") as demo:
     )
 
 if __name__ == "__main__":
-    demo.queue(max_size=20).launch(server_name="0.0.0.0", server_port=PORT, debug=True)
+    generate(
+        prompt="Leather sofa in a rich caramel colour, coffee table with a natural wood top and intricate cut-out white metal base, large flat-screen television mounted on a dark green circular feature wall, wooden media console with a dark brown finish, ceiling fan with a light wood finish and frosted glass light",
+        given_image=Image.open("asset/images/controlnet/living_room_base.jpeg"),
+        negative_prompt="",
+        style="3D Model",
+        use_negative_prompt=False,
+        seed=0,
+        width=1024,
+        height=1024,
+        schedule="DPM-Solver",
+        dpms_guidance_scale=4.5,
+        sas_guidance_scale=3,
+        dpms_inference_steps=14,
+        sas_inference_steps=25,
+        randomize_seed=True,
+    )
