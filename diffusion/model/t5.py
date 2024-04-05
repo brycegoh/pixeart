@@ -83,7 +83,7 @@ class T5Embedder:
             tokenizer_path = cache_dir
 
         print(tokenizer_path)
-        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
+        self.tokenizer = AutoTokenizer.from_pretrained("PixArt-alpha/PixArt-alpha", subfolder="t5-v1_1-xxl")
         self.model = T5EncoderModel.from_pretrained(path, **t5_model_kwargs).eval()
         self.model_max_length = model_max_length
 
