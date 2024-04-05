@@ -320,8 +320,8 @@ if __name__ == "__main__":
         height=1024,
         schedule="SA-Solver",
         dpms_guidance_scale=7.0,
-        sas_guidance_scale=3,
+        sas_guidance_scale=7,
         dpms_inference_steps=30,
-        sas_inference_steps=25,
+        sas_inference_steps=60,
         randomize_seed=True,
     )
